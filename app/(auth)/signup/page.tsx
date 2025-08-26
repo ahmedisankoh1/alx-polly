@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -15,18 +17,40 @@ export default function SignUpPage() {
     confirmPassword: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  
+  const { signUp } = useAuth();
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // TODO: Implement registration logic
-    console.log("Registration attempt:", formData);
-    
-    // Simulate API call
-    setTimeout(() => {
+    setError("");
+
+    // Basic validation
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
       setIsLoading(false);
-    }, 1000);
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      await signUp(formData.email, formData.password, {
+        full_name: formData.name,
+      });
+      // Show success message or redirect
+      router.push("/login?message=Check your email to confirm your account");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred during registration");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,6 +68,11 @@ export default function SignUpPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
+                {error}
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <Input
@@ -52,6 +81,7 @@ export default function SignUpPage() {
                 value={formData.name}
                 onChange={handleChange("name")}
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -63,6 +93,7 @@ export default function SignUpPage() {
                 value={formData.email}
                 onChange={handleChange("email")}
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -73,6 +104,7 @@ export default function SignUpPage() {
                 value={formData.password}
                 onChange={handleChange("password")}
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -83,6 +115,7 @@ export default function SignUpPage() {
                 value={formData.confirmPassword}
                 onChange={handleChange("confirmPassword")}
                 required
+                disabled={isLoading}
               />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
