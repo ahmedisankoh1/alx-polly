@@ -41,11 +41,15 @@ export default function SignUpPage() {
     }
 
     try {
-      await signUp(formData.email, formData.password, {
+      const { error } = await signUp(formData.email, formData.password, {
         full_name: formData.name,
       });
-      // Show success message or redirect
-      router.push("/login?message=Check your email to confirm your account");
+      if (error) {
+        setError(error.message || "Failed to create account");
+      } else {
+        // Show success message or redirect
+        router.push("/login?message=Check your email to confirm your account");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred during registration");
     } finally {

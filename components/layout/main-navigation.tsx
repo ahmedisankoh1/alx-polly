@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { NavigationMenu, NavigationMenuItem, NavigationMenuLink, NavigationMenuList } from "@/components/ui/navigation-menu";
@@ -15,8 +16,13 @@ import { useAuth } from "@/contexts/auth-context";
 
 export function MainNavigation() {
   const { user, signOut, loading } = useAuth();
-  const isAuthenticated = !loading && !!user;
+  const [mounted, setMounted] = useState(false);
 
+  // Handle client-side mounting to prevent hydration mismatches
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -30,10 +36,32 @@ export function MainNavigation() {
   };
 
   const getUserDisplayName = () => {
-    if (user?.user_metadata?.full_name) {
+    if (!user) return "User";
+    
+    // Try to get name from user metadata first
+    if (user.user_metadata?.full_name) {
       return user.user_metadata.full_name;
     }
-    return user?.email || "User";
+    
+    // If no full name, extract name from email
+    if (user.email) {
+      const emailName = user.email.split('@')[0];
+      // Capitalize first letter and replace dots/underscores with spaces
+      return emailName
+        .replace(/[._]/g, ' ')
+        .split(' ')
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+    }
+    
+    return "User";
+  };
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
   };
 
   return (
@@ -52,7 +80,7 @@ export function MainNavigation() {
                   </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
-              {isAuthenticated && (
+              {mounted && !loading && user && (
                 <NavigationMenuItem>
                   <NavigationMenuLink asChild>
                     <Link href="/dashboard" className="px-3 py-2 text-sm font-medium">
@@ -69,9 +97,9 @@ export function MainNavigation() {
             {/* Search can be added here later */}
           </div>
           <nav className="flex items-center space-x-2">
-            {loading ? (
+            {!mounted || loading ? (
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
-            ) : isAuthenticated ? (
+            ) : user ? (
               <div className="flex items-center space-x-4">
                 <Button asChild>
                   <Link href="/polls/create">Create Poll</Link>
@@ -88,7 +116,7 @@ export function MainNavigation() {
                   <DropdownMenuContent className="w-56" align="end" forceMount>
                     <div className="flex items-center justify-start gap-2 p-2">
                       <div className="flex flex-col space-y-1 leading-none">
-                        <p className="font-medium">{getUserDisplayName()}</p>
+                        <p className="font-medium">{getGreeting()}, {getUserDisplayName()}!</p>
                         <p className="w-[200px] truncate text-sm text-muted-foreground">
                           {user?.email}
                         </p>

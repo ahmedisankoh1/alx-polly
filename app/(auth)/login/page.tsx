@@ -24,8 +24,15 @@ export default function LoginPage() {
     setError("");
 
     try {
-      await signIn(email, password);
-      router.push("/dashboard");
+      const { error } = await signIn(email, password);
+      if (error) {
+        setError(error.message || "Failed to sign in");
+      } else {
+        // Wait a bit for auth state to update, then redirect
+        setTimeout(() => {
+          router.push("/polls");
+        }, 500);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred during login");
     } finally {

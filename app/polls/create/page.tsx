@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/contexts/auth-context";
+import { pollService } from "@/lib/services/pollService";
 
 export default function CreatePollPage() {
   const [pollData, setPollData] = useState({
@@ -13,6 +16,10 @@ export default function CreatePollPage() {
     options: ["", ""],
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  
+  const { user } = useAuth();
+  const router = useRouter();
 
   const addOption = () => {
     setPollData(prev => ({
@@ -38,15 +45,43 @@ export default function CreatePollPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // TODO: Implement poll creation logic
-    console.log("Creating poll:", pollData);
-    
-    // Simulate API call
-    setTimeout(() => {
+    setError("");
+
+    // Validation
+    if (!user) {
+      setError("You must be logged in to create a poll");
       setIsLoading(false);
-      // TODO: Redirect to poll page or dashboard
-    }, 1000);
+      return;
+    }
+
+    const validOptions = pollData.options.filter(option => option.trim() !== "");
+    if (validOptions.length < 2) {
+      setError("You must provide at least 2 options");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const result = await pollService.createPoll({
+        title: pollData.title,
+        description: pollData.description || undefined,
+        options: validOptions,
+        userId: user.id,
+        isPublic: true,
+        allowMultipleVotes: false
+      });
+
+      if (result.success && result.poll) {
+        // Redirect to the newly created poll
+        router.push(`/polls/${result.poll.id}`);
+      } else {
+        setError(result.error || "Failed to create poll");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An unexpected error occurred");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -67,6 +102,18 @@ export default function CreatePollPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
+                {error}
+              </div>
+            )}
+            
+            {!user && (
+              <div className="p-3 text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded-md dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400">
+                Please log in to create a poll.
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="title">Poll Question *</Label>
               <Input
@@ -75,6 +122,7 @@ export default function CreatePollPage() {
                 value={pollData.title}
                 onChange={(e) => setPollData(prev => ({ ...prev, title: e.target.value }))}
                 required
+                disabled={isLoading || !user}
               />
             </div>
 
@@ -85,6 +133,7 @@ export default function CreatePollPage() {
                 placeholder="Add more context to your poll..."
                 value={pollData.description}
                 onChange={(e) => setPollData(prev => ({ ...prev, description: e.target.value }))}
+                disabled={isLoading || !user}
               />
             </div>
 
@@ -97,6 +146,7 @@ export default function CreatePollPage() {
                     value={option}
                     onChange={(e) => updateOption(index, e.target.value)}
                     required
+                    disabled={isLoading || !user}
                   />
                   {pollData.options.length > 2 && (
                     <Button
@@ -104,6 +154,7 @@ export default function CreatePollPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => removeOption(index)}
+                      disabled={isLoading || !user}
                     >
                       Remove
                     </Button>
@@ -114,17 +165,17 @@ export default function CreatePollPage() {
                 type="button"
                 variant="outline"
                 onClick={addOption}
-                disabled={pollData.options.length >= 10}
+                disabled={pollData.options.length >= 10 || isLoading || !user}
               >
                 Add Option
               </Button>
             </div>
 
             <div className="flex gap-4 pt-4">
-              <Button type="submit" disabled={isLoading} className="flex-1">
+              <Button type="submit" disabled={isLoading || !user} className="flex-1">
                 {isLoading ? "Creating Poll..." : "Create Poll"}
               </Button>
-              <Button type="button" variant="outline">
+              <Button type="button" variant="outline" disabled={isLoading || !user}>
                 Save as Draft
               </Button>
             </div>

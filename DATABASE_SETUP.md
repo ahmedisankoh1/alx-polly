@@ -1,0 +1,22 @@
+-- Instructions for setting up your Supabase database
+-- 
+-- 1. Go to your Supabase project dashboard (https://app.supabase.com)
+-- 2. Navigate to the SQL Editor
+-- 3. Copy and paste the content from supabase/schema.sql
+-- 4. Run the SQL to create tables, policies, and functions
+-- 5. Your database will be ready for the polling application!
+--
+-- After setting up the database schema, you can:
+-- 1. Sign up for a new account in your app
+-- 2. Create some polls to test the functionality
+-- 3. Vote on polls and see real-time results
+--
+-- Features implemented:
+-- ✅ User authentication with Supabase Auth
+-- ✅ Real-time poll creation and storage
+-- ✅ Vote tracking and statistics
+-- ✅ User-specific poll management
+-- ✅ Row Level Security (RLS) for data protection
+-- ✅ Automatic redirect to browse polls after login
+-- ✅ Personalized greeting with user's name
+-- ✅ Real-time poll browsing and voting
