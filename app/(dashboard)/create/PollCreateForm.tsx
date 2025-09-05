@@ -5,11 +5,13 @@ import { createPoll } from "@/app/lib/actions/poll-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { generateCSRFToken, validateCSRFToken } from "@/lib/csrf";
 
 export default function PollCreateForm() {
   const [options, setOptions] = useState(["", ""]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [csrfToken] = useState(() => generateCSRFToken());
 
   const handleOptionChange = (idx: number, value: string) => {
     setOptions((opts) => opts.map((opt, i) => (i === idx ? value : opt)));
@@ -27,6 +29,14 @@ export default function PollCreateForm() {
       action={async (formData) => {
         setError(null);
         setSuccess(false);
+        
+        // Add CSRF token validation
+        const submittedToken = formData.get('csrf_token') as string;
+        if (!submittedToken || !validateCSRFToken(submittedToken)) {
+          setError('Invalid request. Please try again.');
+          return;
+        }
+        
         const res = await createPoll(formData);
         if (res?.error) {
           setError(res.error);
@@ -39,6 +49,7 @@ export default function PollCreateForm() {
       }}
       className="space-y-6 max-w-md mx-auto"
     >
+      <input type="hidden" name="csrf_token" value={csrfToken} />
       <div>
         <Label htmlFor="question">Poll Question</Label>
         <Input name="question" id="question" required />
